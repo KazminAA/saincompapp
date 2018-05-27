@@ -1,19 +1,32 @@
+import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.WorkbookFactory;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.*;
 
 public class XlsSainCompApp extends JPanel implements ActionListener {
-    static private final String NEWLINE = "\n";
-    private JButton openButton1, openButton2, actionButton;
+    private JButton openButton1, openButton2, actionButton, cancelButton;
     private JTextArea log;
     private JFileChooser fc;
+    private int sainColumnNumber, nameColumnNumber, numberColumnNumber;
 
     private File firstFile, secondFile;
 
-    public XlsSainCompApp() {
+    private ElFileParser fileParser = new ElFileParser();
+
+    private XlsSainCompApp() {
         super(new BorderLayout());
 
         log = new JTextArea(5, 20);
@@ -36,16 +49,25 @@ public class XlsSainCompApp extends JPanel implements ActionListener {
         actionButton = new JButton("Compare");
         actionButton.addActionListener(this);
 
+        cancelButton = new JButton("Cancel");
+        cancelButton.addActionListener(this);
+
         JPanel buttonPanel = new JPanel(); //use FlowLayout
         buttonPanel.add(openButton1);
         buttonPanel.add(openButton2);
         buttonPanel.add(actionButton);
 
+        JPanel buttonPanel2 = new JPanel();
+        buttonPanel2.add(cancelButton);
+
         add(buttonPanel, BorderLayout.PAGE_START);
+        add(buttonPanel2, BorderLayout.PAGE_END);
         add(logScrollPane, BorderLayout.CENTER);
+
+        setParsedColumns();
     }
 
-    protected static ImageIcon createImageIcon(String path) {
+    private static ImageIcon createImageIcon(String path) {
         java.net.URL imgURL = XlsSainCompApp.class.getResource(path);
         if (imgURL != null) {
             return new ImageIcon(imgURL);
@@ -57,7 +79,7 @@ public class XlsSainCompApp extends JPanel implements ActionListener {
 
     private static void createAndShowGUI() {
         JFrame frame = new JFrame("XLSSAINCOMP");
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 
         //Add content to the window.
         frame.add(new XlsSainCompApp());
@@ -68,46 +90,131 @@ public class XlsSainCompApp extends JPanel implements ActionListener {
     }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(new Runnable() {
-            public void run() {
-                UIManager.put("swing.boldMetal", Boolean.FALSE);
-                createAndShowGUI();
-            }
+        SwingUtilities.invokeLater(() -> {
+            UIManager.put("swing.boldMetal", Boolean.FALSE);
+            createAndShowGUI();
         });
+    }
+
+    private void fileChoise(JButton button) {
+        int returnVal = fc.showOpenDialog(XlsSainCompApp.this);
+
+        if (returnVal == JFileChooser.APPROVE_OPTION) {
+            File selectFile = fc.getSelectedFile();
+            if (button.equals(openButton1)) firstFile = selectFile;
+            if (button.equals(openButton2)) secondFile = selectFile;
+            log.append("Opening: " + selectFile.getName() + ".\n");
+            button.setEnabled(false);
+        } else {
+            log.append("Open command cancelled by user.\n");
+        }
+        log.setCaretPosition(log.getDocument().getLength());
     }
 
     @Override
     public void actionPerformed(ActionEvent e) {
         if (e.getSource() == openButton1) {
-            int returnVal = fc.showOpenDialog(XlsSainCompApp.this);
-
-            if (returnVal == JFileChooser.APPROVE_OPTION) {
-                firstFile = fc.getSelectedFile();
-                log.append("Opening: " + firstFile.getName() + "." + NEWLINE);
-            } else {
-                log.append("Open command cancelled by user." + NEWLINE);
-            }
-            log.setCaretPosition(log.getDocument().getLength());
-
+            fileChoise(openButton1);
             //Handle save button action.
         } else if (e.getSource() == openButton2) {
-            int returnVal = fc.showOpenDialog(XlsSainCompApp.this);
-
-            if (returnVal == JFileChooser.APPROVE_OPTION) {
-                secondFile = fc.getSelectedFile();
-                log.append("Opening: " + secondFile.getName() + "." + NEWLINE);
-            } else {
-                log.append("Open command cancelled by user." + NEWLINE);
-            }
-            log.setCaretPosition(log.getDocument().getLength());
+            fileChoise(openButton2);
         } else if (e.getSource() == actionButton) {
-            log.append("Comparing... \n");
             fileCompare();
+        } else if (e.getSource() == cancelButton) {
+            cancel();
+            setParsedColumns();
+            log.append("All operation cancelled by user.\n");
             log.setCaretPosition(log.getDocument().getLength());
         }
 
     }
 
     private void fileCompare() {
+        if (firstFile == null || secondFile == null) {
+            log.append("Both files must be selected.\n");
+            log.setCaretPosition(log.getDocument().getLength());
+            return;
+        }
+        log.append("Comparing... \n");
+        log.setCaretPosition(log.getDocument().getLength());
+        Map<String, ParsedRow> differanceMap;
+        File file = null;
+        Workbook result = null;
+        try {
+            differanceMap = fileParser.getDifference(firstFile, secondFile,
+                    new int[]{sainColumnNumber, nameColumnNumber, numberColumnNumber});
+            result = new XSSFWorkbook();
+            result.createSheet();
+            Sheet sheet = result.getSheetAt(0);
+            ParsedRow[] rows = new ParsedRow[differanceMap.size()];
+            differanceMap.values().toArray(rows);
+            for (int i = 0; i < rows.length; i++) {
+                sheet.createRow(i);
+                Row row = sheet.getRow(i);
+                row.createCell(sainColumnNumber);
+                row.createCell(nameColumnNumber);
+                row.createCell(numberColumnNumber);
+                row.getCell(sainColumnNumber).setCellValue(rows[i].getSain());
+                row.getCell(nameColumnNumber).setCellValue(rows[i].getName());
+                row.getCell(numberColumnNumber).setCellValue(rows[i].getNumber());
+            }
+        } catch (IOException e) {
+            log.append("Something wrong with files!\n");
+            log.setCaretPosition(log.getDocument().getLength());
+        } catch (InvalidFormatException e) {
+            log.append("One from selected file is not an xls/xlsx file.\n");
+            log.setCaretPosition(log.getDocument().getLength());
+        }
+        int returnVal = fc.showSaveDialog(XlsSainCompApp.this);
+        if (returnVal == JFileChooser.APPROVE_OPTION) {
+            file = fc.getSelectedFile();
+            //This is where a real application would save the file.
+            log.append("Saving: " + file.getName() + ".\n");
+        } else {
+            log.append("Save command cancelled by user.\n");
+        }
+        log.setCaretPosition(log.getDocument().getLength());
+        if (file != null && result != null) {
+            try {
+                FileOutputStream out = new FileOutputStream(file);
+                result.write(out);
+                out.close();
+            } catch (FileNotFoundException e) {
+                log.append("Can't open file to save results.\n");
+                log.setCaretPosition(log.getDocument().getLength());
+            } catch (IOException e) {
+                log.append("Can't save results.\n");
+                log.setCaretPosition(log.getDocument().getLength());
+            }
+        }
+        log.append("Done.");
+        log.setCaretPosition(log.getDocument().getLength());
+        cancel();
+    }
+
+    private void cancel() {
+        firstFile = null;
+        secondFile = null;
+        openButton1.setEnabled(true);
+        openButton2.setEnabled(true);
+    }
+
+    private void setParsedColumns() {
+        Properties properties = new Properties();
+        try {
+            properties.load(XlsSainCompApp.class.getClassLoader().getResourceAsStream("application.properties"));
+            sainColumnNumber = Integer.valueOf(properties.getProperty("sain.columnnumber", "1"));
+            nameColumnNumber = Integer.valueOf(properties.getProperty("name.columnnumber", "2"));
+            numberColumnNumber = Integer.valueOf(properties.getProperty("number.columnnumber", "3"));
+            sainColumnNumber--;
+            nameColumnNumber--;
+            numberColumnNumber--;
+        } catch (IOException e) {
+            sainColumnNumber = 0;
+            nameColumnNumber = 1;
+            numberColumnNumber = 2;
+            log.append("Cant't load properties. All set to default.\n");
+            log.setCaretPosition(log.getDocument().getLength());
+        }
     }
 }
