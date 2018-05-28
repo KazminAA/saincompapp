@@ -2,7 +2,6 @@ import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import javax.swing.*;
@@ -10,11 +9,9 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.util.*;
+import java.io.*;
+import java.util.Map;
+import java.util.Properties;
 
 public class XlsSainCompApp extends JPanel implements ActionListener {
     private JButton openButton1, openButton2, actionButton, cancelButton;
@@ -51,6 +48,7 @@ public class XlsSainCompApp extends JPanel implements ActionListener {
 
         cancelButton = new JButton("Cancel");
         cancelButton.addActionListener(this);
+        cancelButton.setEnabled(false);
 
         JPanel buttonPanel = new JPanel(); //use FlowLayout
         buttonPanel.add(openButton1);
@@ -115,9 +113,10 @@ public class XlsSainCompApp extends JPanel implements ActionListener {
     public void actionPerformed(ActionEvent e) {
         if (e.getSource() == openButton1) {
             fileChoise(openButton1);
-            //Handle save button action.
+            cancelButton.setEnabled(true);
         } else if (e.getSource() == openButton2) {
             fileChoise(openButton2);
+            cancelButton.setEnabled(true);
         } else if (e.getSource() == actionButton) {
             fileCompare();
         } else if (e.getSource() == cancelButton) {
@@ -197,23 +196,28 @@ public class XlsSainCompApp extends JPanel implements ActionListener {
         secondFile = null;
         openButton1.setEnabled(true);
         openButton2.setEnabled(true);
+        cancelButton.setEnabled(false);
     }
 
     private void setParsedColumns() {
         Properties properties = new Properties();
-        try {
-            properties.load(XlsSainCompApp.class.getClassLoader().getResourceAsStream("application.properties"));
+        try (FileInputStream inputStream = new FileInputStream("./application.properties");) {
+            properties.load(inputStream);
             sainColumnNumber = Integer.valueOf(properties.getProperty("sain.columnnumber", "1"));
             nameColumnNumber = Integer.valueOf(properties.getProperty("name.columnnumber", "2"));
             numberColumnNumber = Integer.valueOf(properties.getProperty("number.columnnumber", "3"));
+            log.append("Sain column number set to '" + sainColumnNumber + "'.\n");
+            log.append("Name column number set to '" + nameColumnNumber + "'.\n");
+            log.append("Quantity column number set to '" + numberColumnNumber + "'.\n");
+            log.setCaretPosition(log.getDocument().getLength());
             sainColumnNumber--;
             nameColumnNumber--;
             numberColumnNumber--;
-        } catch (IOException e) {
+        } catch (Exception e) {
             sainColumnNumber = 0;
             nameColumnNumber = 1;
             numberColumnNumber = 2;
-            log.append("Cant't load properties. All set to default.\n");
+            log.append("Can't load properties. All set to default.\n");
             log.setCaretPosition(log.getDocument().getLength());
         }
     }
