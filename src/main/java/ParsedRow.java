@@ -1,9 +1,11 @@
 import java.util.Objects;
 
 public class ParsedRow {
+    private String operation;
     private String sain;
     private String name;
     private Integer number;
+    private String notes;
 
     public String getSain() {
         return sain;
@@ -27,6 +29,22 @@ public class ParsedRow {
 
     public void setNumber(Integer number) {
         this.number = number;
+    }
+
+    public String getOperation() {
+        return operation;
+    }
+
+    public void setOperation(String operation) {
+        this.operation = operation;
+    }
+
+    public String getNotes() {
+        return notes;
+    }
+
+    public void setNotes(String notes) {
+        this.notes = notes;
     }
 
     @Override

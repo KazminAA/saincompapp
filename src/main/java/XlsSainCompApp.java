@@ -17,7 +17,7 @@ public class XlsSainCompApp extends JPanel implements ActionListener {
     private JButton openButton1, openButton2, actionButton, cancelButton;
     private JTextArea log;
     private JFileChooser fc;
-    private int sainColumnNumber, nameColumnNumber, numberColumnNumber;
+    private int operationColumnNumber, sainColumnNumber, nameColumnNumber, numberColumnNumber, notesColumnNumber, skipFirstRows;
 
     private File firstFile, secondFile;
 
@@ -75,25 +75,6 @@ public class XlsSainCompApp extends JPanel implements ActionListener {
         }
     }
 
-    private static void createAndShowGUI() {
-        JFrame frame = new JFrame("XLSSAINCOMP");
-        frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-
-        //Add content to the window.
-        frame.add(new XlsSainCompApp());
-
-        //Display the window.
-        frame.pack();
-        frame.setVisible(true);
-    }
-
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            UIManager.put("swing.boldMetal", Boolean.FALSE);
-            createAndShowGUI();
-        });
-    }
-
     private void fileChoise(JButton button) {
         int returnVal = fc.showOpenDialog(XlsSainCompApp.this);
 
@@ -128,6 +109,26 @@ public class XlsSainCompApp extends JPanel implements ActionListener {
 
     }
 
+
+    private static void createAndShowGUI() {
+        JFrame frame = new JFrame("XLSSAINCOMP");
+        frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+
+        //Add content to the window.
+        frame.add(new XlsSainCompApp());
+
+        //Display the window.
+        frame.pack();
+        frame.setVisible(true);
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            UIManager.put("swing.boldMetal", Boolean.FALSE);
+            createAndShowGUI();
+        });
+    }
+
     private void fileCompare() {
         if (firstFile == null || secondFile == null) {
             log.append("Both files must be selected.\n");
@@ -141,21 +142,39 @@ public class XlsSainCompApp extends JPanel implements ActionListener {
         Workbook result = null;
         try {
             differanceMap = fileParser.getDifference(firstFile, secondFile,
-                    new int[]{sainColumnNumber, nameColumnNumber, numberColumnNumber});
+                    new int[]{sainColumnNumber, nameColumnNumber, numberColumnNumber, notesColumnNumber, skipFirstRows, operationColumnNumber});
             result = new XSSFWorkbook();
             result.createSheet();
             Sheet sheet = result.getSheetAt(0);
+            for (int i = 0; i <= skipFirstRows; i++) {
+                sheet.createRow(i);
+            }
+            Row row = sheet.getRow(5);
+            row.createCell(operationColumnNumber);
+            row.createCell(sainColumnNumber);
+            row.createCell(nameColumnNumber);
+            row.createCell(numberColumnNumber);
+            row.createCell(notesColumnNumber);
+            row.getCell(operationColumnNumber).setCellValue("Операция");
+            row.getCell(sainColumnNumber).setCellValue("Спецификация");
+            row.getCell(nameColumnNumber).setCellValue("Материал");
+            row.getCell(numberColumnNumber).setCellValue("Кол-во");
+            row.getCell(notesColumnNumber).setCellValue("Примечания технолога");
             ParsedRow[] rows = new ParsedRow[differanceMap.size()];
             differanceMap.values().toArray(rows);
-            for (int i = 0; i < rows.length; i++) {
+            for (int i = 6; i < rows.length + 6; i++) {
                 sheet.createRow(i);
-                Row row = sheet.getRow(i);
+                row = sheet.getRow(i);
+                row.createCell(operationColumnNumber);
                 row.createCell(sainColumnNumber);
                 row.createCell(nameColumnNumber);
                 row.createCell(numberColumnNumber);
-                row.getCell(sainColumnNumber).setCellValue(rows[i].getSain());
-                row.getCell(nameColumnNumber).setCellValue(rows[i].getName());
-                row.getCell(numberColumnNumber).setCellValue(rows[i].getNumber());
+                row.createCell(notesColumnNumber);
+                row.getCell(operationColumnNumber).setCellValue(rows[i - 6].getOperation());
+                row.getCell(sainColumnNumber).setCellValue(rows[i - 6].getSain());
+                row.getCell(nameColumnNumber).setCellValue(rows[i - 6].getName());
+                row.getCell(numberColumnNumber).setCellValue(rows[i - 6].getNumber());
+                row.getCell(notesColumnNumber).setCellValue(rows[i - 6].getNotes());
             }
         } catch (IOException e) {
             log.append("Something wrong with files!\n");
@@ -203,20 +222,29 @@ public class XlsSainCompApp extends JPanel implements ActionListener {
         Properties properties = new Properties();
         try (FileInputStream inputStream = new FileInputStream("./application.properties");) {
             properties.load(inputStream);
+            operationColumnNumber = Integer.valueOf(properties.getProperty("operation.columnnumber", "0"));
             sainColumnNumber = Integer.valueOf(properties.getProperty("sain.columnnumber", "1"));
             nameColumnNumber = Integer.valueOf(properties.getProperty("name.columnnumber", "2"));
             numberColumnNumber = Integer.valueOf(properties.getProperty("number.columnnumber", "3"));
+            notesColumnNumber = Integer.valueOf(properties.getProperty("notes.columnnumber", "4"));
+            skipFirstRows = Integer.valueOf(properties.getProperty("skip.first.rows", "4"));
             log.append("Sain column number set to '" + sainColumnNumber + "'.\n");
             log.append("Name column number set to '" + nameColumnNumber + "'.\n");
             log.append("Quantity column number set to '" + numberColumnNumber + "'.\n");
+            log.append("Notes column number set to '" + notesColumnNumber + "'.\n");
+            log.append("Skip First Rows number set to '" + skipFirstRows + "'.\n");
             log.setCaretPosition(log.getDocument().getLength());
             sainColumnNumber--;
             nameColumnNumber--;
             numberColumnNumber--;
+            notesColumnNumber--;
         } catch (Exception e) {
-            sainColumnNumber = 0;
-            nameColumnNumber = 1;
-            numberColumnNumber = 2;
+            operationColumnNumber = 0;
+            sainColumnNumber = 1;
+            nameColumnNumber = 2;
+            numberColumnNumber = 3;
+            notesColumnNumber = 4;
+            skipFirstRows = 5;
             log.append("Can't load properties. All set to default.\n");
             log.setCaretPosition(log.getDocument().getLength());
         }
