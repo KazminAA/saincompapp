@@ -18,8 +18,8 @@ import java.util.prefs.Preferences;
 
 public class XlsSainCompApp extends JPanel implements ActionListener {
 
-    private static final int DEFAULT_WIDTH = 430;
-    private static final int DEFAULT_HEIGHT = 165;
+    private static final int DEFAULT_WIDTH = 450;
+    private static final int DEFAULT_HEIGHT = 250;
     private static Preferences root = Preferences.userRoot();
     private static Preferences node = root.node("/com/agrobyd/saincomp");
 

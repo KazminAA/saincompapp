@@ -16,7 +16,7 @@ public class ElFileParser {
     }
 
     public Map<String, ParsedRow> getDifference(File firstFile, File seconFile, int[] parsingColumn) throws IOException, InvalidFormatException {
-        resultMap = new HashMap<>();
+        resultMap = new TreeMap<>();
         this.parsingColumn = parsingColumn;
         List<ParsedRow> rows = readRowFromExcel(firstFile);
         rows.forEach(row -> {
