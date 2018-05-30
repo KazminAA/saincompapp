@@ -9,11 +9,20 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.*;
 import java.util.Map;
 import java.util.Properties;
+import java.util.prefs.Preferences;
 
 public class XlsSainCompApp extends JPanel implements ActionListener {
+
+    private static final int DEFAULT_WIDTH = 430;
+    private static final int DEFAULT_HEIGHT = 165;
+    private static Preferences root = Preferences.userRoot();
+    private static Preferences node = root.node("/com/agrobyd/saincomp");
+
     private JButton openButton1, openButton2, actionButton, cancelButton;
     private JTextArea log;
     private JFileChooser fc;
@@ -117,8 +126,20 @@ public class XlsSainCompApp extends JPanel implements ActionListener {
         //Add content to the window.
         frame.add(new XlsSainCompApp());
 
+        frame.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                node.putInt("left", frame.getX());
+                node.putInt("top", frame.getY());
+                super.windowClosing(e);
+            }
+        });
+
+        int left = node.getInt("left", 0);
+        int top = node.getInt("top", 0);
+
         //Display the window.
-        frame.pack();
+        frame.setBounds(left, top, DEFAULT_WIDTH, DEFAULT_HEIGHT);
         frame.setVisible(true);
     }
 
