@@ -1,4 +1,7 @@
+import org.apache.poi.hssf.util.HSSFColor;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.Font;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -166,6 +169,14 @@ public class XlsSainCompApp extends JPanel implements ActionListener {
                     new int[]{sainColumnNumber, nameColumnNumber, numberColumnNumber, notesColumnNumber, skipFirstRows, operationColumnNumber});
             result = new XSSFWorkbook();
             result.createSheet();
+            CellStyle style1 = result.createCellStyle();
+            Font font1 = result.createFont();
+            font1.setColor(HSSFColor.HSSFColorPredefined.RED.getIndex());
+            style1.setFont(font1);
+            CellStyle style2 = result.createCellStyle();
+            Font font2 = result.createFont();
+            font2.setColor(HSSFColor.HSSFColorPredefined.GREEN.getIndex());
+            style2.setFont(font2);
             Sheet sheet = result.getSheetAt(0);
             for (int i = 0; i <= skipFirstRows; i++) {
                 sheet.createRow(i);
@@ -195,6 +206,11 @@ public class XlsSainCompApp extends JPanel implements ActionListener {
                 row.getCell(sainColumnNumber).setCellValue(rows[i - 6].getSain());
                 row.getCell(nameColumnNumber).setCellValue(rows[i - 6].getName());
                 row.getCell(numberColumnNumber).setCellValue(rows[i - 6].getNumber());
+                if (rows[i - 6].getNumber() < 0) {
+                    row.getCell(numberColumnNumber).setCellStyle(style1);
+                } else {
+                    row.getCell(numberColumnNumber).setCellStyle(style2);
+                }
                 row.getCell(notesColumnNumber).setCellValue(rows[i - 6].getNotes());
             }
         } catch (IOException e) {
