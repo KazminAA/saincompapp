@@ -265,12 +265,14 @@ public class XlsSainCompApp extends JPanel implements ActionListener {
             numberColumnNumber = Integer.valueOf(properties.getProperty("number.columnnumber", "3"));
             notesColumnNumber = Integer.valueOf(properties.getProperty("notes.columnnumber", "4"));
             skipFirstRows = Integer.valueOf(properties.getProperty("skip.first.rows", "4"));
+            log.append("Operation column number set to '" + operationColumnNumber + "'.\n");
             log.append("Sain column number set to '" + sainColumnNumber + "'.\n");
             log.append("Name column number set to '" + nameColumnNumber + "'.\n");
             log.append("Quantity column number set to '" + numberColumnNumber + "'.\n");
             log.append("Notes column number set to '" + notesColumnNumber + "'.\n");
             log.append("Skip First Rows number set to '" + skipFirstRows + "'.\n");
             log.setCaretPosition(log.getDocument().getLength());
+            operationColumnNumber--;
             sainColumnNumber--;
             nameColumnNumber--;
             numberColumnNumber--;

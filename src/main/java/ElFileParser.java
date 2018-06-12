@@ -12,6 +12,9 @@ public class ElFileParser {
 
     private static ParsedRow applySum(ParsedRow r1, ParsedRow r2) {
         r1.setNumber(r1.getNumber() + r2.getNumber());
+        if (!r1.getNotes().equals(r2.getNotes())) {
+            r1.setNotes(r1.getNotes() + " !!! " + r2.getNotes());
+        }
         return r1;
     }
 
